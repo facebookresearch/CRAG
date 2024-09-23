@@ -1,0 +1,9 @@
+fastapi==0.103.0
+uvicorn[standard]
+pydantic==2.5.3
+rank_bm25
+tqdm
+pandas==2.0.3
+lxml
+sqlitedict==2.1.0
+loguru

@@ -1,0 +1,2 @@
+*.bz2 filter=lfs diff=lfs merge=lfs -text
+*.bz2.part* filter=lfs diff=lfs merge=lfs -text
