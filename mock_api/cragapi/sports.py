@@ -89,7 +89,7 @@ class NBAKG:
     def get_games_on_date(self, date_str, basketball_team_name=None):
         """ 
             Description: Get all nba game rows given date_str
-            Input: date_str in format of %Y-%m-%d, e.g. 2023-01-01, basketball_team_name (Optional)
+            Input: date_str in format of %Y-%m-%d, %Y-%m, or %Y, e.g. 2023-01-01, 2023-01, 2023, basketball_team_name (Optional)
             Output: a json contains info of the game
         """
         if basketball_team_name is not None:
