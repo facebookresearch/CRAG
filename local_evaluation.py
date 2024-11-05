@@ -228,7 +228,7 @@ def evaluate_predictions(queries, ground_truths_list, predictions, evaluation_mo
                         "content": f"Question: {query}\n Ground truth: {ground_truth}\n Prediction: {prediction}\n",
                     },
                 ]
-                elif prediction_lowercase == ground_truth_lowercase:
+                if prediction_lowercase == ground_truth_lowercase:
                     # exact correct
                     accuracy = 1
                     break
