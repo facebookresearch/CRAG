@@ -54,9 +54,20 @@ class CRAG(object):
         music_get_song_release_country(song_name: str) -> dict: Get the release country of a song.
         music_get_song_release_date(song_name: str) -> dict: Get the release date of a song.
         music_get_artist_all_works(artist_name: str) -> dict: Get all works by an artist.
-        sports_soccer_get_games_on_date(team_name: str, date: str) -> dict: Get soccer games on a specific date.
-        sports_nba_get_games_on_date(team_name: str, date: str) -> dict: Get NBA games on a specific date.
-        sports_nba_get_play_by_play_data_by_game_ids(game_ids: List[str]) -> dict: Get NBA play by play data for a set of game ids.
+        sports_soccer_get_games_on_date(team_name: str, date: str) -> dict: Get soccer games on a specific date. 
+            Result includes game attributes such as date, time, 
+            GF: GF: Goals For - the number of goals scored by the team in question during the match, 
+            GA: Goals Against - the number of goals conceded by the team during the match,
+            xG: Expected Goals - a statistical measure that estimates the number of goals a team should have scored based on the quality of chances they created, 
+            xGA: Expected Goals Against - a measure estimating the number of goals a team should have conceded based on the quality of chances allowed to the opponent,
+            Poss: Possession - the percentage of the match time during which the team had possession of the ball.
+        sports_nba_get_games_on_date(team_name: str, date: str) -> dict: Get NBA games on a specific date. 
+            Result includes game attributes such as 
+                team_name_home: The full name of the home team,
+                wl_home: The outcome of the game for the home team,
+                pts_home: The total number of points scored by the home team.
+        sports_nba_get_play_by_play_data_by_game_ids(game_ids: List[str]) -> dict: Get NBA play by play data for a set of game ids. 
+            Result includes play-by-play event time, description, player etc.
 
     Note:
         Each method performs a POST request to the corresponding API endpoint and returns the response as a JSON dictionary.
