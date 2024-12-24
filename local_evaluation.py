@@ -178,6 +178,8 @@ def generate_predictions(dataset_path, participant_model):
         queries.extend(batch["query"])
         ground_truths.extend(batch_ground_truths)
         predictions.extend(batch_predictions)
+        with open(f"predictions_partial_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json", "w") as f:
+            json.dump({"queries": queries, "ground_truths": ground_truths, "predictions": predictions}, f)
     
     return queries, ground_truths, predictions
 
@@ -286,8 +288,29 @@ if __name__ == "__main__":
     # Generate predictions
     participant_model = UserModel()
     queries, ground_truths, predictions = generate_predictions(DATASET_PATH, participant_model)
+    with open("predictions_full_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json", "w") as f:
+        json.dump({
+            "queries": queries,
+            "ground_truths": ground_truths,
+            "predictions": predictions,
+            "evaluation_model_name": EVALUATION_MODEL_NAME,
+            "participant_model_name": participant_model.model_name,
+            "dataset_path": DATASET_PATH,
+            "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }, f)
     # Evaluate Predictions
     openai_client = OpenAI()
     evaluation_results = evaluate_predictions(
         queries, ground_truths, predictions, EVALUATION_MODEL_NAME, openai_client
     )
+    with open("evaluation_results_full_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json", "w") as f:
+        json.dump({
+            "queries": queries,
+            "ground_truths": ground_truths,
+            "predictions": predictions,
+            "evaluation_results": evaluation_results,
+            "evaluation_model_name": EVALUATION_MODEL_NAME,
+            "participant_model_name": participant_model.model_name,
+            "dataset_path": DATASET_PATH,
+            "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }, f)
