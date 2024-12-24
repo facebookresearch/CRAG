@@ -4,6 +4,7 @@ pydantic==2.5.3
 rank_bm25
 tqdm
 pandas==2.0.3
+numpy<2.0.0
 lxml
 sqlitedict==2.1.0
 loguru

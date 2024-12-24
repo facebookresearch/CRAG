@@ -6,8 +6,10 @@ hf-transfer
 huggingface-hub
 loguru
 lxml
-openai==1.13.3
+openai==1.45.0
 sentence_transformers
 torch
 transformers
-vllm>=0.4.2
+debugpy==1.8.0
+vllm==0.4.2
+auto-gptq
