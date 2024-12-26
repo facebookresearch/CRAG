@@ -280,6 +280,7 @@ def evaluate_predictions(queries, ground_truths_list, predictions, evaluation_mo
 
 
 if __name__ == "__main__":
+    from argparse import ArgumentParser
     from models.user_config import UserModel
 
     EVALUATION_MODEL_NAME = os.getenv("EVALUATION_MODEL_NAME", "gpt-4-0125-preview")
