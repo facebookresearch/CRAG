@@ -15,7 +15,7 @@ from openai import APIConnectionError, OpenAI, RateLimitError
 from prompts.templates import IN_CONTEXT_EXAMPLES, INSTRUCTIONS
 from tqdm.auto import tqdm
 from transformers import LlamaTokenizerFast
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+#from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 
 tokenizer = LlamaTokenizerFast.from_pretrained("tokenizer")
 
