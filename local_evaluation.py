@@ -285,8 +285,8 @@ def evaluate_predictions(queries, ground_truths_list, predictions, evaluation_mo
 if __name__ == "__main__":
     from models.user_config import UserModel
 
-    DATASET_PATH = "data/balanced_100_questions.jsonl.bz2"
-    EVALUATION_MODEL_NAME = os.getenv("EVALUATION_MODEL_NAME", "gpt-4o")
+    DATASET_PATH = "data/filtered_long_tailed_questions_test.jsonl.bz2"
+    EVALUATION_MODEL_NAME = os.getenv("EVALUATION_MODEL_NAME", "gpt-3.5-turbo")
 
     # Generate predictions
     participant_model = UserModel()

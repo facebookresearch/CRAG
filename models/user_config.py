@@ -15,7 +15,10 @@
 #from models.rag_yandex_gpt_baseline import RAGModel
 #UserModel= RAGModel
 
-from models.vanilla_yandexgpt_baseline import InstructModel
+#from models.vanilla_yandexgpt_baseline import InstructModel
+#UserModel = InstructModel
+
+from models.vanilla_gigachat_baseline import InstructModel
 UserModel = InstructModel
 
 
