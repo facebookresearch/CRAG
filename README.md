@@ -4,6 +4,21 @@ The Comprehensive RAG Benchmark (CRAG) is a rich and comprehensive factual quest
 
 This repository is migrated from [meta-comprehensive-rag-benchmark-kdd-cup-2024](https://gitlab.aicrowd.com/aicrowd/challenges/meta-comprehensive-rag-benchmark-kdd-cup-2024).
 
+## 🧪 Updates
+
+To compare popular commercial Russian LLMs we've made several updates in original CRAG repo code. 
+
+Models added: 
+- YandexGPT PRO (API wrapper): `./models/vanilla_yandex_gpt_baseline.py`
+- Sber GigaCHAT (in progress)
+
+For testing purposes and to follow the structure of our experiments we've created utils functions 
+to filter and/or limit the existing dataset: 
+`./utils/`:
+- `filter_data.py` - create filtered dataset based on question type (Task 1 & 2)
+- `balance_data.py` - create balanced uniform dataset with all question types (Task 1 & 2)
+- `compress_data.py` - compress created dataset into .bz2 format 
+
 ## 📊 Dataset and Mock APIs
 
 Please find more details about the CRAG dataset (download, schema, etc.) in [docs/dataset.md](docs/dataset.md) and mock APIs in [mock_api](mock_api).

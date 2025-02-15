@@ -1,0 +1,8 @@
+name: crag
+desc: CRAG benchmark
+cmd: python local_evaluation.py --result ${OUTPUT}
+env:
+  python: auto # transfer local code and pip dependencies to DataSphere
+outputs:
+  - result.txt: OUTPUT
+cloud-instance-type: c1.4
