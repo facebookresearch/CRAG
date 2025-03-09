@@ -45,8 +45,17 @@ Please refer to [local_evaluation.py](local_evaluation.py) for more details on h
 ## ✍️ How to run end-to-end evaluation?
 1. **Install** specific dependencies
     ```bash
-    pip install -r requirements.txt
+    uv pip install -r requirements.txt
     ```
+
+2. To use YandexGPT and Gigachat models:
+    - get credentials to access APIs from corresponding provider:
+        - [YandexGPT API](https://yandex.cloud/en/docs/foundation-models/quickstart/yandexgpt)
+        - [GigaCHAT API](https://developers.sber.ru/docs/ru/gigachat/api/overview)
+        - [OpenAI API](https://openai.com/index/openai-api/)
+    - create `.env` file in the root of the project;
+    - provide api keys following the example from `.env_example`;
+    - set names of models you want to use
 
 2. Please follow the instructions in [models/README.md](models/README.md) for instructions and examples on how to write your own models.
 

@@ -20,9 +20,11 @@ class OpenKG(object):
     def __init__(self):
         self.kg = {}
         for i in range(2):
-            open_kg_file = os.path.join(KG_BASE_DIRECTORY, "open", "kg."+str(i)+".jsonl.bz2")
+            open_kg_file = os.path.join(
+                KG_BASE_DIRECTORY, "open", "kg." + str(i) + ".jsonl.bz2"
+            )
             logger.info(f"Reading open_kg file from: {open_kg_file}")
-            with bz2.open(open_kg_file, "rt", encoding='utf8') as f:
+            with bz2.open(open_kg_file, "rt", encoding="utf8") as f:
                 l = f.readline()
                 while l:
                     l = json.loads(l)
@@ -40,12 +42,16 @@ class OpenKG(object):
         self.corpus.sort()
         self.corpus = [ne.split() for ne in self.corpus]
         self.bm25 = BM25Okapi(self.corpus)
-        
+
         logger.info("Open KG initialized ✅")
 
-        
     def normalize(self, x):
-        return " ".join(x.lower().replace("_", " ").translate(str.maketrans('', '', string.punctuation)).split())
+        return " ".join(
+            x.lower()
+            .replace("_", " ")
+            .translate(str.maketrans("", "", string.punctuation))
+            .split()
+        )
 
     def search_entity_by_name(self, query):
         n = 10
@@ -55,9 +61,9 @@ class OpenKG(object):
         top_ne = [" ".join(self.corpus[i]) for i in top_idx if scores[i] != 0]
         top_e = []
         for ne in top_ne:
-            assert(ne in self.key_map)
+            assert ne in self.key_map
             top_e += self.key_map[ne]
         return top_e[:n]
 
     def get_entity(self, entity):
-        return self.kg[entity] if entity in self.kg else None        
+        return self.kg[entity] if entity in self.kg else None

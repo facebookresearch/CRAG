@@ -45,19 +45,19 @@ MAX_CONTEXT_SENTENCE_LENGTH = 1000
 MAX_CONTEXT_REFERENCES_LENGTH = 4000
 
 # Batch size you wish the evaluators will use to call the `batch_generate_answer` function
-SUBMISSION_BATCH_SIZE = 8 # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
+SUBMISSION_BATCH_SIZE = 8  # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
 
-# VLLM Parameters 
-VLLM_TENSOR_PARALLEL_SIZE = 4 # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
-VLLM_GPU_MEMORY_UTILIZATION = 0.85 # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
+# VLLM Parameters
+VLLM_TENSOR_PARALLEL_SIZE = 4  # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
+VLLM_GPU_MEMORY_UTILIZATION = 0.85  # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
 
 # Sentence Transformer Parameters
-SENTENTENCE_TRANSFORMER_BATCH_SIZE = 128 # TUNE THIS VARIABLE depending on the size of your embedding model and GPU mem available
+SENTENTENCE_TRANSFORMER_BATCH_SIZE = 128  # TUNE THIS VARIABLE depending on the size of your embedding model and GPU mem available
 
 #### CONFIG PARAMETERS END---
 
-class ChunkExtractor:
 
+class ChunkExtractor:
     @ray.remote
     def _extract_chunks(self, interaction_id, html_source):
         """
@@ -76,7 +76,9 @@ class ChunkExtractor:
         """
         # Parse the HTML content using BeautifulSoup
         soup = BeautifulSoup(html_source, "lxml")
-        text = soup.get_text(" ", strip=True)  # Use space as a separator, strip whitespaces
+        text = soup.get_text(
+            " ", strip=True
+        )  # Use space as a separator, strip whitespaces
 
         if not text:
             # Return a list with empty string when no text is extracted
@@ -112,7 +114,7 @@ class ChunkExtractor:
             self._extract_chunks.remote(
                 self,
                 interaction_id=batch_interaction_ids[idx],
-                html_source=html_text["page_result"]
+                html_source=html_text["page_result"],
             )
             for idx, search_results in enumerate(batch_search_results)
             for html_text in search_results
@@ -123,7 +125,9 @@ class ChunkExtractor:
         chunk_dictionary = defaultdict(list)
 
         for response_ref in ray_response_refs:
-            interaction_id, _chunks = ray.get(response_ref)  # Blocking call until parallel execution is complete
+            interaction_id, _chunks = ray.get(
+                response_ref
+            )  # Blocking call until parallel execution is complete
             chunk_dictionary[interaction_id].extend(_chunks)
 
         # Flatten chunks and keep a map of corresponding interaction_ids
@@ -156,10 +160,12 @@ class ChunkExtractor:
 
         return chunks, chunk_interaction_ids
 
+
 class RAGModel:
     """
     An example RAGModel
     """
+
     def __init__(self):
         self.initialize_models()
         self.chunk_extractor = ChunkExtractor()
@@ -180,20 +186,18 @@ class RAGModel:
         self.llm = vllm.LLM(
             self.model_name,
             worker_use_ray=True,
-            tensor_parallel_size=VLLM_TENSOR_PARALLEL_SIZE, 
-            gpu_memory_utilization=VLLM_GPU_MEMORY_UTILIZATION, 
+            tensor_parallel_size=VLLM_TENSOR_PARALLEL_SIZE,
+            gpu_memory_utilization=VLLM_GPU_MEMORY_UTILIZATION,
             trust_remote_code=True,
-            dtype="half", # note: update the dtype based on the available GPU
-            enforce_eager=True
+            dtype="half",  # note: update the dtype based on the available GPU
+            enforce_eager=True,
         )
         self.tokenizer = self.llm.get_tokenizer()
 
         # Load a sentence transformer model optimized for sentence embeddings, using CUDA if available.
         self.sentence_model = SentenceTransformer(
             "models/sentence-transformers/all-MiniLM-L6-v2",
-            device=torch.device(
-                "cuda" if torch.cuda.is_available() else "cpu"
-            ),
+            device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         )
 
     def calculate_embeddings(self, sentences):
@@ -217,24 +221,24 @@ class RAGModel:
         )
         # Note: There is an opportunity to parallelize the embedding generation across 4 GPUs
         #       but sentence_model.encode_multi_process seems to interefere with Ray
-        #       on the evaluation servers. 
+        #       on the evaluation servers.
         #       todo: this can also be done in a Ray native approach.
-        #       
+        #
         return embeddings
 
     def get_batch_size(self) -> int:
         """
         Determines the batch size that is used by the evaluator when calling the `batch_generate_answer` function.
-        
-        The evaluation timeouts linearly scale with the batch size. 
-            i.e.: time out for the `batch_generate_answer` call = batch_size * per_sample_timeout 
-        
+
+        The evaluation timeouts linearly scale with the batch size.
+            i.e.: time out for the `batch_generate_answer` call = batch_size * per_sample_timeout
+
 
         Returns:
             int: The batch size, an integer between 1 and 16. It can be dynamic
                  across different batch_generate_answer calls, or stay a static value.
         """
-        self.batch_size = SUBMISSION_BATCH_SIZE  
+        self.batch_size = SUBMISSION_BATCH_SIZE
         return self.batch_size
 
     def batch_generate_answer(self, batch: Dict[str, Any]) -> List[str]:
@@ -296,13 +300,15 @@ class RAGModel:
             retrieval_results = relevant_chunks[
                 (-cosine_scores).argsort()[:NUM_CONTEXT_SENTENCES]
             ]
-            
-            # You might also choose to skip the steps above and 
+
+            # You might also choose to skip the steps above and
             # use a vectorDB directly.
             batch_retrieval_results.append(retrieval_results)
-            
-        # Prepare formatted prompts from the LLM        
-        formatted_prompts = self.format_prompts(queries, query_times, batch_retrieval_results)
+
+        # Prepare formatted prompts from the LLM
+        formatted_prompts = self.format_prompts(
+            queries, query_times, batch_retrieval_results
+        )
 
         # Generate responses via vllm
         responses = self.llm.generate(
@@ -313,32 +319,31 @@ class RAGModel:
                 temperature=0.1,  # Randomness of the sampling
                 skip_special_tokens=True,  # Whether to skip special tokens in the output.
                 max_tokens=50,  # Maximum number of tokens to generate per output sequence.
-                
                 # Note: We are using 50 max new tokens instead of 75,
                 # because the 75 max token limit for the competition is checked using the Llama2 tokenizer.
                 # Llama3 instead uses a different tokenizer with a larger vocabulary
-                # This allows the Llama3 tokenizer to represent the same content more efficiently, 
+                # This allows the Llama3 tokenizer to represent the same content more efficiently,
                 # while using fewer tokens.
             ),
-            use_tqdm=False # you might consider setting this to True during local development
+            use_tqdm=False,  # you might consider setting this to True during local development
         )
 
         # Aggregate answers into List[str]
         answers = []
         for response in responses:
             answers.append(response.outputs[0].text)
-        
+
         return answers
 
     def format_prompts(self, queries, query_times, batch_retrieval_results=[]):
         """
         Formats queries, corresponding query_times and retrieval results using the chat_template of the model.
-            
+
         Parameters:
         - queries (List[str]): A list of queries to be formatted into prompts.
         - query_times (List[str]): A list of query_time strings corresponding to each query.
         - batch_retrieval_results (List[str])
-        """        
+        """
         system_prompt = "You are provided with a question and various references. Your task is to answer the question succinctly, using the fewest words possible. If the references do not contain the necessary information to answer the question, respond with 'I don't know'. There is no need to explain the reasoning behind your answers."
         formatted_prompts = []
 
@@ -348,22 +353,22 @@ class RAGModel:
 
             user_message = ""
             references = ""
-            
+
             if len(retrieval_results) > 0:
                 references += "# References \n"
                 # Format the top sentences as references in the model's prompt template.
                 for _snippet_idx, snippet in enumerate(retrieval_results):
                     references += f"- {snippet.strip()}\n"
-            
+
             references = references[:MAX_CONTEXT_REFERENCES_LENGTH]
             # Limit the length of references to fit the model's input size.
 
             user_message += f"{references}\n------\n\n"
-            user_message 
+            user_message
             user_message += f"Using only the references listed above, answer the following question: \n"
             user_message += f"Current Time: {query_time}\n"
             user_message += f"Question: {query}\n"
-            
+
             formatted_prompts.append(
                 self.tokenizer.apply_chat_template(
                     [

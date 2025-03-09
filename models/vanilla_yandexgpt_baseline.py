@@ -3,13 +3,13 @@ from dotenv import dotenv_values
 import os
 from typing import Any, Dict, List
 
-config = dotenv_values('.env')
+config = dotenv_values(".env")
 
 # YandexGPT API Configuration
 YANDEX_API_KEY = config["YCLOUD_API_TOKEN"]
 YANDEX_FOLDER_ID = config["YCLOUD_FOLDER_ID"]
+YANDEX_MODEL = config["YANDEX_MODEL"]
 YANDEXGPT_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
-
 
 
 # Copyright (c) Meta Platforms, Inc. and affiliates.
@@ -41,9 +41,10 @@ CRAG_MOCK_API_URL = os.getenv("CRAG_MOCK_API_URL", "http://localhost:8000")
 #### CONFIG PARAMETERS ---
 
 # Batch size you wish the evaluators will use to call the `batch_generate_answer` function
-BATCH_SIZE = 8 # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
+BATCH_SIZE = 8  # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
 
 #### CONFIG PARAMETERS END---
+
 
 class InstructModel:
     def __init__(self):
@@ -70,7 +71,7 @@ class InstructModel:
                  queries should be processed together in a single batch. It can be dynamic
                  across different batch_generate_answer calls, or stay a static value.
         """
-        self.batch_size = BATCH_SIZE  
+        self.batch_size = BATCH_SIZE
         return self.batch_size
 
     def batch_generate_answer(self, batch: Dict[str, Any]) -> List[str]:
@@ -99,7 +100,11 @@ class InstructModel:
         formatted_prompts = self.format_prompts(queries)
 
         # Generate responses via YandexGPT API
-        responses = self.sdk.models.completions("yandexgpt").configure(temperature=0.5).run(formatted_prompts)
+        responses = (
+            self.sdk.models.completions(f"{YANDEX_MODEL}")
+            .configure(temperature=0.5)
+            .run(formatted_prompts)
+        )
 
         # Aggregate answers into List[str]
         answers = []
@@ -111,10 +116,10 @@ class InstructModel:
     def format_prompts(self, queries):
         """
         Formats queries using the chat_template of the model.
-            
+
         Parameters:
         - queries (list of str): A list of queries to be formatted into prompts.
-            
+
         """
         system_prompt = "You are provided with a question and various references. Your task is to answer the question succinctly, using the fewest words possible. If the references do not contain the necessary information to answer the question, respond with 'I don't know'."
         formatted_prompts = []
@@ -124,8 +129,10 @@ class InstructModel:
 
             formatted_prompts.append(
                 {
-                    "role": "system", "text": system_prompt,
-                    "role": "user", "text": user_message,
+                    "role": "system",
+                    "text": system_prompt,
+                    "role": "user",
+                    "text": user_message,
                 }
             )
 

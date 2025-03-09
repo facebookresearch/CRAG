@@ -17,7 +17,7 @@ from yandex_cloud_ml_sdk import YCloudML  # Yandex Cloud ML SDK for embeddings
 
 from dotenv import dotenv_values
 
-config = dotenv_values('.env')
+config = dotenv_values(".env")
 
 # YandexGPT API Configuration
 YANDEX_API_KEY = config["YCLOUD_API_TOKEN"]
@@ -34,6 +34,7 @@ MAX_CONTEXT_REFERENCES_LENGTH = 4000
 # Batch size you wish the evaluators will use to call the `batch_generate_answer` function
 SUBMISSION_BATCH_SIZE = 8
 
+
 class ChunkExtractor:
     @ray.remote
     def _extract_chunks(self, interaction_id, html_source):
@@ -44,9 +45,10 @@ class ChunkExtractor:
             return interaction_id, [""]
 
         _, offsets = text_to_sentences_and_offsets(text)
-        chunks = [text[start:end][:MAX_CONTEXT_SENTENCE_LENGTH] 
-                for start, end in offsets]
-        
+        chunks = [
+            text[start:end][:MAX_CONTEXT_SENTENCE_LENGTH] for start, end in offsets
+        ]
+
         return interaction_id, chunks
 
     def extract_chunks(self, batch_interaction_ids, batch_search_results):
@@ -54,7 +56,7 @@ class ChunkExtractor:
             self._extract_chunks.remote(
                 self,
                 interaction_id=batch_interaction_ids[idx],
-                html_source=html_text["page_result"]
+                html_source=html_text["page_result"],
             )
             for idx, search_results in enumerate(batch_search_results)
             for html_text in search_results
@@ -75,20 +77,17 @@ class ChunkExtractor:
             ids.extend([iid] * len(unique))
         return np.array(chunks), np.array(ids)
 
+
 class RAGModel:
     def __init__(self):
-        self.sdk = YCloudML(
-            folder_id=YANDEX_FOLDER_ID,
-            auth=YANDEX_API_KEY
-        )
+        self.sdk = YCloudML(folder_id=YANDEX_FOLDER_ID, auth=YANDEX_API_KEY)
         self.chunk_extractor = ChunkExtractor()
         self.embedding_model = {
             "query": self.sdk.models.text_embeddings("query"),
-            "doc": self.sdk.models.text_embeddings("doc")
+            "doc": self.sdk.models.text_embeddings("doc"),
         }
         self.llm = self.sdk.models.completions("yandexgpt").configure(
-            temperature=0.1,
-            max_tokens=75
+            temperature=0.1, max_tokens=75
         )
 
     def get_batch_size(self) -> int:
@@ -96,15 +95,14 @@ class RAGModel:
 
     def batch_generate_answer(self, batch: Dict[str, Any]) -> List[str]:
         chunks, chunk_ids = self.chunk_extractor.extract_chunks(
-            batch["interaction_id"], 
-            batch["search_results"]
+            batch["interaction_id"], batch["search_results"]
         )
 
         # Calculate embeddings
-        query_embs = np.array([self._get_embedding(text, "query") 
-                             for text in batch["query"]])
-        chunk_embs = np.array([self._get_embedding(text, "doc") 
-                            for text in chunks])
+        query_embs = np.array(
+            [self._get_embedding(text, "query") for text in batch["query"]]
+        )
+        chunk_embs = np.array([self._get_embedding(text, "doc") for text in chunks])
 
         # Retrieve context
         contexts = []
@@ -115,11 +113,14 @@ class RAGModel:
             contexts.append("\n".join(chunks[mask][top_indices]))
 
         # Generate answers
-        return [self._generate_answer(
-            query=batch["query"][i],
-            context=contexts[i],
-            timestamp=batch["query_time"][i]
-        ) for i in range(len(batch["query"]))]
+        return [
+            self._generate_answer(
+                query=batch["query"][i],
+                context=contexts[i],
+                timestamp=batch["query_time"][i],
+            )
+            for i in range(len(batch["query"]))
+        ]
 
     def _get_embedding(self, text: str, emb_type: str) -> np.ndarray:
         try:
@@ -129,13 +130,16 @@ class RAGModel:
             return np.zeros(768)
 
     def _generate_answer(self, query: str, context: str, timestamp: str) -> str:
-        messages = [{
-            "role": "system",
-            "text": "Answer using ONLY the provided references. If unsure, say 'I don't know'."
-        }, {
-            "role": "user",
-            "text": f"References:\n{context}\n\nCurrent Time: {timestamp}\nQuestion: {query}"
-        }]
+        messages = [
+            {
+                "role": "system",
+                "text": "Answer using ONLY the provided references. If unsure, say 'I don't know'.",
+            },
+            {
+                "role": "user",
+                "text": f"References:\n{context}\n\nCurrent Time: {timestamp}\nQuestion: {query}",
+            },
+        ]
 
         try:
             result = self.llm.run(messages)

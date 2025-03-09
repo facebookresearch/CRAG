@@ -2,15 +2,22 @@ import os
 from typing import Any, Dict, List
 import httpx
 import json
+import requests
+import uuid
+from datetime import datetime, timedelta
+import logging
 
 # Load environment variables from .env file
 from dotenv import dotenv_values
-config = dotenv_values('.env')
+
+config = dotenv_values(".env")
 
 # GigaChat API Configuration
 GIGACHAT_API_KEY = config["GIGACHAT_API_KEY"]
+GIGACHAT_MODEL = config["GIGACHAT_MODEL"]
 GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1"
 CA_CERT_PATH = "cert/russiantrustedca.pem"  # Path to the CA certificate file
+
 
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
@@ -40,9 +47,10 @@ CRAG_MOCK_API_URL = os.getenv("CRAG_MOCK_API_URL", "http://localhost:8000")
 #### CONFIG PARAMETERS ---
 
 # Batch size you wish the evaluators will use to call the `batch_generate_answer` function
-BATCH_SIZE = 8 # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
+BATCH_SIZE = 8  # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
 
 #### CONFIG PARAMETERS END---
+
 
 class InstructModel:
     def __init__(self):
@@ -53,9 +61,34 @@ class InstructModel:
         """
         self.initialize_models()
 
+    def get_sber_api_key(self) -> tuple:
+        url = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+
+        self.request_id = uuid.uuid4()
+
+        payload = "scope=GIGACHAT_API_PERS"
+        headers = {
+            "RqUID": f"{str(self.request_id)}",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": f"Bearer {GIGACHAT_API_KEY}",
+        }
+
+        response = requests.request(
+            "POST", url, headers=headers, data=payload, verify=False
+        )
+
+        sber_api_response = response.json()
+
+        self.api_token = sber_api_response.get("access_token", "Unknown")
+        self.exp_timestamp = sber_api_response.get("expires_at", "Unknown")
+
+        return self.api_token, self.exp_timestamp, self.request_id
+
     def initialize_models(self):
         # Initialize HTTP client for GigaChat API
-        self.client = httpx.Client(verify=CA_CERT_PATH)
+        # self.client = httpx.Client(verify=CA_CERT_PATH)
+        self.client = httpx.Client(verify=False)
+        self.get_sber_api_key()
 
     def get_batch_size(self) -> int:
         """
@@ -66,7 +99,7 @@ class InstructModel:
                  queries should be processed together in a single batch. It can be dynamic
                  across different batch_generate_answer calls, or stay a static value.
         """
-        self.batch_size = BATCH_SIZE  
+        self.batch_size = BATCH_SIZE
         return self.batch_size
 
     def batch_generate_answer(self, batch: Dict[str, Any]) -> List[str]:
@@ -91,20 +124,29 @@ class InstructModel:
         - Response Time: Ensure that your model processes and responds to each query within 30 seconds.
           Failing to adhere to this time constraint **will** result in a timeout during evaluation.
         """
+
+        current_time = datetime.now()
+
+        if current_time >= datetime.fromtimestamp(
+            self.exp_timestamp / 1000
+        ) - timedelta(minutes=1):
+            logging.info("Sber API key is about to expire, refreshing...")
+            self.api_token, self.exp_timestamp, _ = self.get_sber_api_key()
+
         queries = batch["query"]
         formatted_prompts = self.format_prompts(queries)
 
         # Generate responses via GigaChat API
         headers = {
-            "Authorization": f"Bearer {GIGACHAT_API_KEY}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {self.api_token}",
+            "Content-Type": "application/json",
         }
         responses = []
         for prompt in formatted_prompts:
             response = self.client.post(
                 f"{GIGACHAT_API_URL}/chat/completions",
                 headers=headers,
-                data=json.dumps({"model": "GigaChat", "messages": prompt})
+                data=json.dumps({"model": f"{GIGACHAT_MODEL}", "messages": prompt}),
             )
             response_data = response.json()
             responses.append(response_data["choices"][0]["message"]["content"])
@@ -119,25 +161,20 @@ class InstructModel:
     def format_prompts(self, queries):
         """
         Formats queries using the chat_template of the model.
-            
+
         Parameters:
         - queries (list of str): A list of queries to be formatted into prompts.
-            
+
         """
         system_prompt = {
-            "role": "system", 
-            "content": "You are provided with a question and various references. Your task is to answer the question succinctly, using the fewest words possible. If the references do not contain the necessary information to answer the question, respond with 'I don't know'."
+            "role": "system",
+            "content": "You are provided with a question and various references. Your task is to answer the question succinctly, using the fewest words possible. If the references do not contain the necessary information to answer the question, respond with 'I don't know'.",
         }
         formatted_prompts = []
 
         for query in queries:
-            user_message = {
-                "role": "user", 
-                "content": f"Question: {query}\n"
-            }
+            user_message = {"role": "user", "content": f"Question: {query}\n"}
 
-            formatted_prompts.append(
-                [system_prompt, user_message]
-            )
+            formatted_prompts.append([system_prompt, user_message])
 
         return formatted_prompts

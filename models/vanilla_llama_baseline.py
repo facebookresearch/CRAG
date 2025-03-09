@@ -34,13 +34,14 @@ CRAG_MOCK_API_URL = os.getenv("CRAG_MOCK_API_URL", "http://localhost:8000")
 #### CONFIG PARAMETERS ---
 
 # Batch size you wish the evaluators will use to call the `batch_generate_answer` function
-BATCH_SIZE = 8 # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
+BATCH_SIZE = 8  # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
 
-# VLLM Parameters 
-VLLM_TENSOR_PARALLEL_SIZE = 4 # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
-VLLM_GPU_MEMORY_UTILIZATION = 0.85 # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
+# VLLM Parameters
+VLLM_TENSOR_PARALLEL_SIZE = 4  # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
+VLLM_GPU_MEMORY_UTILIZATION = 0.85  # TUNE THIS VARIABLE depending on the number of GPUs you are requesting and the size of your model.
 
 #### CONFIG PARAMETERS END---
+
 
 class InstructModel:
     def __init__(self):
@@ -67,11 +68,11 @@ class InstructModel:
         self.llm = vllm.LLM(
             self.model_name,
             worker_use_ray=True,
-            tensor_parallel_size=VLLM_TENSOR_PARALLEL_SIZE, 
-            gpu_memory_utilization=VLLM_GPU_MEMORY_UTILIZATION, 
+            tensor_parallel_size=VLLM_TENSOR_PARALLEL_SIZE,
+            gpu_memory_utilization=VLLM_GPU_MEMORY_UTILIZATION,
             trust_remote_code=True,
-            dtype="half", # note: update the dtype based on the available GPU
-            enforce_eager=True
+            dtype="half",  # note: update the dtype based on the available GPU
+            enforce_eager=True,
         )
         self.tokenizer = self.llm.get_tokenizer()
 
@@ -84,7 +85,7 @@ class InstructModel:
                  queries should be processed together in a single batch. It can be dynamic
                  across different batch_generate_answer calls, or stay a static value.
         """
-        self.batch_size = BATCH_SIZE  
+        self.batch_size = BATCH_SIZE
         return self.batch_size
 
     def batch_generate_answer(self, batch: Dict[str, Any]) -> List[str]:
@@ -131,7 +132,7 @@ class InstructModel:
                 # The Llama3 model instead uses a differet tokenizer with a larger vocabulary
                 # This allows it to represent the same content more efficiently, using fewer tokens.
             ),
-            use_tqdm = False
+            use_tqdm=False,
         )
 
         # Aggregate answers into List[str]
@@ -144,11 +145,11 @@ class InstructModel:
     def format_prommpts(self, queries, query_times):
         """
         Formats queries and corresponding query_times using the chat_template of the model.
-            
+
         Parameters:
         - queries (list of str): A list of queries to be formatted into prompts.
         - query_times (list of str): A list of query_time strings corresponding to each query.
-            
+
         """
         system_prompt = "You are provided with a question and various references. Your task is to answer the question succinctly, using the fewest words possible. If the references do not contain the necessary information to answer the question, respond with 'I don't know'."
         formatted_prompts = []
