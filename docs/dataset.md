@@ -31,6 +31,7 @@ Retrieval contents are divided into two types to simulate practical scenarios fo
 | `answer`               | string        | The gold standard answer to the question.                                                                                                                             |
 | `alt_ans`  | list        | Other valid gold standard answers to the question.                                                                                                                    |
 | `split`                | integer       | Data split indicator, where 0 is for validation and 1 is for the public test.                                                                                         |
+| `popularity`                | string       | Popularity category of the entity mentioned in the question, with head, torso and tail corresponding to the top, middle, and bottom popularity. We defined popularity based on heuristics for each entity type and created a roughly equal number of questions for each bucket.
 | `search_results`       | list of JSON  | Contains up to `k` HTML pages for each query (`k=5` for Task #1 and `k=50` for Task #3), including page name, URL, snippet, full HTML, and last modified time.         |
 
 ### Search Results Detail
@@ -42,4 +43,3 @@ Retrieval contents are divided into two types to simulate practical scenarios fo
 | `page_snippet`       | string | A short paragraph describing the major content of the page. |
 | `page_result`        | string | The full HTML of the webpage.                           |
 | `page_last_modified` | string | The time when the page was last modified.               |
-
